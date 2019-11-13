@@ -2,6 +2,7 @@
 
 const express = require("express");
 const bodyParser = require("body-parser");
+const mysql = require('mysql');
 
 const restService = express();
 
@@ -46,45 +47,27 @@ restService.post("/echo", function(req, res) {
   });
 });
 
-app.post('/jobs', (req, res) => {
-	const jobsSearch =
-		req.body.queryResult && req.body.queryResult.parameters && req.body.queryResult.parameters.jobs
-			? req.body.result.parameters.jobs
-			: ''
+//creating database connection
+const conn = mysql.createConnection({
+  host: '127.0.0.1',
+  user: 'root',
+  password: 'Needyin@123',
+  database: 'needyin'
+});
+//connecting to database
+conn.connect((err) =>{
+  if(err) throw err;
+  console.log('Mysql Connected...');
+});
+//show all products
+restService.get('/api/products',(req, res) => {
+  let sql = "SELECT * FROM product";
+  let query = conn.query(sql, (err, results) => {
+    if(err) throw err;
+    res.send(JSON.stringify({"status": 200, "error": null, "response": results}));
+  });
+});
 
-	const reqUrl = encodeURI(
-		`https://api.needyin.com/index.php/restApi/user_jobs/search`
-	)
-	http.get(
-		reqUrl,
-		responseFromAPI => {
-			let completeResponse = ''
-			responseFromAPI.on('data', chunk => {
-				completeResponse += chunk
-			})
-			responseFromAPI.on('end', () => {
-				const movie = JSON.parse(completeResponse)
-
-				let dataToSend = jobsSearch
-				dataToSend = `${jobs.des_name} ${jobs.job_desc}.${
-					jobs.company_name
-				} ${jobs.company_email}. ${jobs.min_exp}.${jobs.max_exp}.${jobs.creation_date}.${jobs.min_salary}.${jobs.loc_name}.${jobs.emp_name}
-                }`
-
-				return res.json({
-					fulfillmentText: dataToSend,
-					source: 'webhook-echo-sample'
-				})
-			})
-		},
-		error => {
-			return res.json({
-				fulfillmentText: 'Could not get results at this time',
-				source: 'webhook-echo-sample'
-			})
-		}
-	)
-})
 
 restService.listen(process.env.PORT || 8000, function() {
   console.log("Server up and listening");
